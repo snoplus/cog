@@ -1,0 +1,12 @@
+*.pyc
+*.swp
+
+build
+dist
+env
+*.egg-info
+
+doc/_build
+
+config/config.json
+

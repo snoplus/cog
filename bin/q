@@ -1,0 +1,75 @@
+#!/usr/bin/env python
+import os, time, sys, re
+
+def check_ssh_key():
+    'Verify that the special SGE ssh key exists.  If not, generate it.'
+    key_file = os.path.expanduser('~/.ssh/id_dsa_sge')
+    if not os.path.exists(key_file):
+        os.system('qsetup')
+
+def main(argv):
+    check_ssh_key()
+
+    scmd = 'sbatch'
+    scmd_args = []
+    nodelist = None
+    partition = None
+    command_pos = 1
+
+    # node list?
+    if '-w' in argv:
+        nodelist = argv[argv.index('-w') + 1]
+        scmd_args.append('-w')
+        scmd_args.append(nodelist)
+        command_pos += 2
+
+    # specific partition?
+    if '-p' in argv:
+        partition = argv[argv.index('-p') + 1]
+        scmd_args.append('-p')
+        scmd_args.append(partition)
+        command_pos += 2
+
+    # output redirection
+    if '-so' in argv:
+        stdout = argv[argv.index('-so') + 1]
+        scmd_args.append('-o')
+        scmd_args.append(stdout)
+        command_pos += 2
+
+    if '-se' in argv:
+        stderr = argv[argv.index('-se') + 1]
+        scmd_args.append('-e')
+        scmd_args.append(stderr)
+        command_pos += 2
+
+    # sbatch command must be a shell script, so feed the command through
+    # sbatch.scr, which just runs $@
+    scmd_args.append('sbatch.scr')
+
+    # command is the first thing after w and p options
+    command = argv[command_pos]
+    scmd_args.append(command)
+
+    scmd_args.insert(0, '-J')
+    scmd_args.insert(1, command)
+
+    # args are all that follws cmd
+    args = argv[command_pos + 1:]
+    scmd_args.extend(args)
+
+    # Run appropriate slurm command.  Command replaces this script in memory,
+    # so no return after next line
+    os.execvp(scmd, [scmd] + scmd_args)
+    
+def help_batch():
+    print 'Usage: q [-w node1,...] [-p all|ubuntu|sl] [-so stdout file] [-se stderr file] command_name [args]'
+    print '''  Submits a job which runs command_name to the queue.
+  Automatically sets environment and working directory to current values.'''
+
+if __name__ == '__main__':
+    if len(sys.argv) == 1:
+        help_batch()
+    else:
+        main(sys.argv)
+    

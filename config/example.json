@@ -1,0 +1,8 @@
+{
+    "default_partition": "good_nodes",
+    "partition_map": {
+        "architecture is x86_64": ["sixtyfour"],
+        "architecture is i386": ["pentiums", "oldnodes"]
+    }
+}
+
