@@ -20,12 +20,13 @@ class SLURMCluster(object):
     :param default_partition: The name of the default SLURM partition, or None
     :param partition_map: A map of system requirements to partitions
     '''
-    def __init__(self, default_partition=None, partition_map={}):
+    def __init__(self, default_partition=None, partition_map=None):
         self.default_partition = default_partition
-        self.partition_map = partition_map
+        self.partition_map = partition_map or {}
 
     @staticmethod
-    def submit_job(command, args, partition=None, node=None, so=None, se=None):
+    def submit_job(command, args, partition=None, node=None, stdout=None,
+            stderr=None):
         '''Submit a job to the SLURM cluster.
 
         Uses the `q` script located in `bin`.
@@ -34,8 +35,8 @@ class SLURMCluster(object):
         :param args: Command-line arguments
         :param partition: Submit to specific SLURM partition(s)
         :param node: Submit to specific SLURM node(s)
-        :param so: Filename to which to write stdout
-        :param se: Filename to which to write stderr
+        :param stdout: Filename to which to write stdout
+        :param stderr: Filename to which to write stderr
         :returns: Return code of system call to `q`
         '''
         q_cmd = 'q'
@@ -44,10 +45,10 @@ class SLURMCluster(object):
             q_args += ' -w ' + node
         if partition is not None:
             q_args += ' -p ' + partition
-        if so is not None:
-            q_args += ' -so ' + so
-        if se is not None:
-            q_args += ' -se ' + se
+        if stdout is not None:
+            q_args += ' -so ' + stdout
+        if stderr is not None:
+            q_args += ' -se ' + stderr
 
         full_command = [q_cmd] + q_args.split() + [command] + args.split()
         print ' '.join(full_command)
@@ -70,12 +71,11 @@ class SLURMCluster(object):
         partition = self.default_partition
 
         # attempt to resolve system requirements
-        dependencies_okay = True
         if 'requires' in document:
             for req in document['requires']:
                 if req in self.partition_map:
                     plist = self.partition_map[req]
-                    partition = ','.join(plist) if v is not None else None
+                    partition = ','.join(plist) if plist is not None else None
 
         task_module_name = '.'.join(['cog', 'tasks', document['name']])
 

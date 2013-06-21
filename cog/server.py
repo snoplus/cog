@@ -1,7 +1,5 @@
 '''Main server functions and event loop.'''
 
-from cog import db
-
 def serve_forever(database, cluster):
     '''Run the server.
 
