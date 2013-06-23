@@ -1,0 +1,19 @@
+#!/bin/bash
+
+echo 'Setting up password-free login between nubar nodes...'
+
+priv_keyname=~/.ssh/id_dsa_sge
+pub_keyname=${priv_keyname}.pub
+authorized_keys=~/.ssh/authorized_keys
+ssh_config=~/.ssh/config
+
+ssh-keygen -q -t dsa -f ${priv_keyname} -N ''
+
+echo -n 'from="ratbuild*.localdomain" ' >> ${authorized_keys}
+cat ${pub_keyname} >> ${authorized_keys}
+echo '# added by qsetup for SLURM grid (do not panic! no hackers here...)' >> ${ssh_config}
+echo 'Host nubar*' >> ${ssh_config}
+echo 'IdentityFile' ${priv_keyname} >> ${ssh_config}
+chmod 600 ${authorized_keys}
+chmod 600 ${ssh_config}
+
