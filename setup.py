@@ -21,7 +21,7 @@ setup(
         "License :: OSI Approved :: BSD License",
     ],
     packages = ['cog', 'cog.tasks'],
-    scripts = ['bin/cog', 'bin/q', 'bin/sbatch.scr'],
+    scripts = ['bin/cog', 'bin/q', 'bin/qsetup', 'bin/sbatch.scr'],
     install_requires = ['couchdb', 'sphinx'],
 
     #include_package_data = True,
