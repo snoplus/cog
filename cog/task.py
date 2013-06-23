@@ -64,12 +64,11 @@ class Task(object):
             for attachment in results['attachments']:
                 # if a link name is specified, put a link next to results on the
                 # web page
-                for attachment in results['attachments']:
-                    if 'link_name' in attachment:
-                        self.document['results'].setdefault('attach_links', []).append({
-                            'id': attachment['filename'],
-                            'name': attachment['link_name']
-                        })
+                if 'link_name' in attachment:
+                    self.document['results'].setdefault('attach_links', []).append({
+                        'id': attachment['filename'],
+                        'name': attachment['link_name']
+                    })
             del self.document['results']['attachments']
             self.database.save(self.document)
             self.document = self.database[self.document.id]
