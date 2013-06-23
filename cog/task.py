@@ -78,10 +78,11 @@ class Task(object):
         self.document['completed'] = time.time()
         self.database.save(self.document)
 
-    def run(self, document):
+    def run(self, document, work_dir):
         '''Override this method to define task code.
 
         :param document: Document defining the task to run
+        :param work_dir: Working directory
         '''
         raise Exception('Task.run: Cannot call run method on base class')
 
@@ -160,7 +161,7 @@ def scons_build(work_dir, options=None, configure=True,
         configure_options=None):
     '''Compile with scons.
 
-    Note: Returns None if configure runs and fails.
+    Note: Returns (None, None) if configure runs and fails.
 
     :param work_dir: Working directory
     :param options: Options to pass to scons
@@ -181,9 +182,9 @@ def scons_build(work_dir, options=None, configure=True,
 
     if not os.path.exists(env_file):
         print 'scons_build: ./configure failed (no env.sh file)'
-        return
+        return None, None
 
-    arglist = (env_file, options)
+    arglist = (env_file, ' '.join(options))
     ret = system('source %s && scons %s &> build_log.txt' % arglist, work_dir)
 
     log_text = None

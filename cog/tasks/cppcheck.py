@@ -43,7 +43,7 @@ class CPPCheck(cog.task.Task):
 
         # get the code
         code = cog.task.git_clone(git_url, sha, sha, work_dir=work_dir)
-        if code is None or code != 0:
+        if code is None or (code != 0 and code != 1):
             return {'success': False, 'reason': 'git clone failed',
                     'code': str(code)}
 
