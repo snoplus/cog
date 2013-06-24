@@ -1,5 +1,6 @@
 '''SLURM cluster interface.'''
 
+import time
 import subprocess
 
 class SLURMCluster(object):
@@ -83,6 +84,10 @@ class SLURMCluster(object):
         args = '-m %s %s %s %s %s %s' % (task_module_name, database.host,
                                       database.dbname, database.username,
                                       database.password, document.id)
+
+        # indicate that the job is queued
+        document['queued'] = time.time()
+        database.database.save(document)
 
         SLURMCluster.submit_job(cmd, args, partition)
 

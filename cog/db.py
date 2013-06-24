@@ -53,7 +53,8 @@ class CouchDB(object):
                 for change in changes:
                     doc_id = change['id']
                     if (doc_id in self.database and
-                        'started' not in self.database[doc_id]):
+                        'started' not in self.database[doc_id] and
+                        'queued' not in self.database[doc_id]):
                         last_seq = change['seq'] + 1
                         yield doc_id
  
