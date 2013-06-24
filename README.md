@@ -16,9 +16,20 @@ Requirements
 Installation
 ------------
 
+First, install the package:
+
     $ python setup.py install
 
 Use of a `virtualenv` is recommended.
+
+Next, push the web interface to your CouchDB server. This includes both a
+CouchApp user interface and the views and filters needed internally by cog.
+
+    $ cd web && ./egret push http://your-server:5984/dbname
+
+If you wish to use the provided web interface, it is installed at
+`http://your-server:5984/dbname/_design/cog/index.html`. Use of a proxy to
+clean up this URL is recommended.
 
 Usage
 -----
