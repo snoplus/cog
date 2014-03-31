@@ -43,7 +43,7 @@ class CouchDB(object):
         :returns: Generator of changed document IDs
         '''
         last_seq = 0
-        filter_name = self.database.name + '/task'
+        filter_name = 'pytunia/task'
  
         while True:
             changes = self.database.changes(feed='continuous', heartbeat=30000,
