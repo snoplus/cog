@@ -60,7 +60,7 @@ class CharTest(cog.task.Task):
             if file_errors != []:
                 success = False
         # write web page
-        web_page = print_HTML(errors,success,"char_test.html")
+        web_page = print_HTML(errors,"char_test.html")
         attachments = []
         attachments.append({ 'filename': 'char_test.html',
                              'contents': web_page,
@@ -76,7 +76,7 @@ class CharTest(cog.task.Task):
         '''
         #count number of files failed
         nfails = sum(1 for i in results.values() if i != [])
-        overall_pass = nfails == 0
+        overall_pass = (nfails == 0)
         web_page = '''<html>                                                                  
         <head> 
         <title> White Space and ASCII Checker </title>
@@ -87,9 +87,7 @@ class CharTest(cog.task.Task):
         <table border>
         ''' %('green' if overall_pass else 'red', 
               'All Files Passed' if overall_pass else "%i Files Failed" %nfails)
-        for filename, error_list in results.items():
-            if filename == 'success':
-                continue
+        for filename, error_list in errors.items():
             passed = (error_list == [])
             web_page +=  '''
             <tr> 
