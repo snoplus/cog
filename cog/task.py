@@ -132,17 +132,17 @@ def git_clone(url, sha, target=None, work_dir=None):
     else:
         return None
 
-def git_fetch(self,url,ref,work_dir):
-    '''Fetch a remote branch
+def git_fetch(self,url,ref,repo_dir):
+    '''Fetch a remote, commands executed in repository directory (usually not = work_dir)
     :param url: The URL to git fetch
     :param ref: Name of remote ref to fetch
-    :param work_dir: working directory
+    :param repo_dir: directory containing git repository
     :returns: Return code of "git fetch"
     '''
     cmd = ' '.join(['git remote add fork',url])
-    system(cmd,work_dir)
+    system(cmd,repo_dir)
     cmd = ' '.join(['git fetch fork',ref])
-    return system(cmd,work_dir)
+    return system(cmd,repo_dir)
     
 
 def git_merge(url, ref, work_dir=None):
