@@ -132,6 +132,18 @@ def git_clone(url, sha, target=None, work_dir=None):
     else:
         return None
 
+def git_fetch(self,url,ref,work_dir):
+    '''Fetch a remote branch
+    :param url: The URL to git fetch
+    :param ref: Name of remote ref to fetch
+    :param work_dir: working directory
+    :returns: Return code of "git fetch"
+    '''
+    cmd = ' '.join(['git remote add fork',url])
+    cog.task.system(cmd,work_dir)
+    cmd = ' '.join(['git fetch fork',ref])
+    return system(cmd,work_dir)
+    
 
 def git_merge(url, ref, work_dir=None):
     '''Merge a remote ref into an existing local clone.
@@ -154,7 +166,25 @@ def git_merge(url, ref, work_dir=None):
     cmd = ' '.join(['git pull fork', ref, '&> /dev/null'])
 
     return system(cmd, work_dir)
-
+def get_changed_files(self,ref):
+    '''Get a list of files changed in the fetched code using git diff 
+    :param ref: name of remote ref to test
+    :returns: list of file paths relative to rat dir
+    '''
+    cmd = ["git","diff","--name-only",ref]
+    changed_files = subprocess.check_output(cmd).splitlines()
+    #Only Interested in code files
+    changed_code_files = [file for file in changedfiles if file.endswith(tuple(CODE_EXTS))]
+    return changed_code_files
+    
+def get_diff(self,ref,file):
+    ''' Get the diff for a changed file 
+    :param ref: name of remote ref to test
+    :param file: path to modified file
+    :returns: git diff as a string
+    '''
+    cmd = ["git","diff","-U0",ref,file]
+    return subprocess.check_output(cmd)
 
 def scons_build(work_dir, options=None, configure=True,
         configure_options=None):
