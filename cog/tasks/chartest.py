@@ -43,7 +43,7 @@ class CharTest(cog.task.Task):
         #Fetch the fork changes
         repo_dir = sha
         if work_dir:
-            repo_dir = os.join(work_dir,sha)
+            repo_dir = os.path.join(work_dir,sha)
         code = cog.task.git_fetch(base_repo_url,base_repo_ref,repo_dir)
         if code is None or (code != 0 and code != 1):
             return {'success': False, 'reason': 'git clone failed',
