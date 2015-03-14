@@ -140,7 +140,7 @@ def git_fetch(self,url,ref,work_dir):
     :returns: Return code of "git fetch"
     '''
     cmd = ' '.join(['git remote add fork',url])
-    cog.task.system(cmd,work_dir)
+    system(cmd,work_dir)
     cmd = ' '.join(['git fetch fork',ref])
     return system(cmd,work_dir)
     
