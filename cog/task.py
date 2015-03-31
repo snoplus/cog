@@ -102,6 +102,22 @@ def system(cmd, work_dir=None):
     return subprocess.call([cmd], executable='/bin/bash', shell=True)
 
 
+def system_output(cmd, work_dir=None):
+    '''Call a function in the shell.
+
+    A wrapper for subprocess.call. Requires the bash shell.
+
+    :param cmd: The command string
+    :param work_dir: The working directory in which to execute
+    :returns: stdout and stderr of the process as string
+    :raises subprocess.CalledProcessError
+    '''
+    if work_dir:
+        cmd = ('cd %s && ' % work_dir) + cmd
+    print cmd
+    return subprocess.check_output([cmd], stderr=subprocess.STDOUT, executable='/bin/bash', shell=True)
+
+
 def git_clone(url, sha, target=None, work_dir=None):
     '''Clone a git repository.
 
