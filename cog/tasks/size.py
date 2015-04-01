@@ -43,8 +43,7 @@ class SizeCheck(cog.task.Task):
             return {'success': False, 'reason': 'missing revision id'}
         if git_url is None:
             return {'success': False, 'reason': 'missing git url'}
-        if (base_repo_url and base_repo_ref is None or
-                base_repo_ref and base_repo_url is None):
+        if base_repo_url is None or base_repo_ref is None:
             return {'success': False,
                     'reason': 'incomplete base specification for merge'}
 
