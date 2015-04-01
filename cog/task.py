@@ -29,7 +29,13 @@ class Task(object):
     def __call__(self, clone=True, build=True):
         '''Run the task and update the database.'''
         self.start()
-        results = self.run(self.document, self.work_dir)
+        try:
+            results = self.run(self.document, self.work_dir)
+        except Exception as e:
+            results = {
+                'success': False,
+                'reason': 'Unhandled exception in task: %s' % str(e)
+            }
         self.finish(results)
 
     def __del__(self):

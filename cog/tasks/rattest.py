@@ -69,11 +69,19 @@ class RATTest(cog.task.Task):
 
         # run the requested rattest
         testpath = os.path.join(checkout_path, 'test', 'full')
-        code = cog.task.system('source ../../env.sh && rattest -t %s &> rattest.log'
+        code = cog.task.system('source ../../env.sh &> rattest.log && rattest -t %s >>rattest.log 2>&1'
                                % testname, testpath)
         if code != 0:
             results['success'] = False
             results['reason'] = 'rattest failed'
+            with open('%s/rattest.log' % testpath, 'r') as log_file:
+                log_text = log_file.read()
+            results['attachments'].append({
+                'filename': 'rattest.txt',
+                'contents': log_text,
+                'link_name': 'rattest.log'
+            })
+            
 
         # attach results
         for root, dirs, files in os.walk(os.path.join(testpath, testname),
