@@ -184,7 +184,7 @@ def git_merge(url, ref, work_dir=None):
 
 def get_changed_files(sha,repo_dir):
     '''Get a list of files changed in the fetched code using git diff. (remote must be fetched)
-    :param ref: sha of fork to test
+    :param sha: sha of fork to test
     :returns: list of file paths relative to rat dir
     '''
     cmd = "git diff --name-only %s" %(sha)
