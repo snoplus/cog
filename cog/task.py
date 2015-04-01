@@ -108,6 +108,22 @@ def system(cmd, work_dir=None):
     return subprocess.call([cmd], executable='/bin/bash', shell=True)
 
 
+def system_output(cmd, work_dir=None):
+    '''Call a function in the shell and grab stdout & stderr 
+
+    A wrapper for subprocess.check_output. Requires the bash shell.
+
+    :param cmd: The command string
+    :param work_dir: The working directory in which to execute
+    :returns: stdout and stderr of the process as string
+    :raises subprocess.CalledProcessError
+    '''
+    if work_dir:
+        cmd = ('cd %s && ' % work_dir) + cmd
+    print cmd
+    return subprocess.check_output([cmd], stderr=subprocess.STDOUT, executable='/bin/bash', shell=True)
+
+
 def git_clone(url, sha, target=None, work_dir=None):
     '''Clone a git repository.
 
@@ -138,6 +154,17 @@ def git_clone(url, sha, target=None, work_dir=None):
     else:
         return None
 
+def git_fetch(url,repo_dir):
+    '''Fetch a remote, commands executed in repository directory (usually not = work_dir)
+    :param url: The URL to git fetch
+    :param repo_dir: directory containing git repository
+    :returns: Return code of "git fetch"
+    '''
+    cmd = ' '.join(['git remote add fork',url])
+    system(cmd,repo_dir)
+    cmd = 'git fetch fork'
+    return system(cmd,repo_dir)
+    
 
 def git_merge(url, ref, work_dir=None):
     '''Merge a remote ref into an existing local clone.
@@ -161,6 +188,23 @@ def git_merge(url, ref, work_dir=None):
 
     return system(cmd, work_dir)
 
+def get_changed_files(sha,repo_dir):
+    '''Get a list of files changed in the fetched code using git diff. (remote must be fetched)
+    :param sha: sha of fork to test
+    :returns: list of file paths relative to rat dir
+    '''
+    cmd = "git diff --name-only %s" %(sha)
+    changed_files = system_output(cmd,repo_dir).splitlines()
+    return changed_files
+    
+def get_diff(file,sha,repo_dir):
+    ''' Get the diff for a file for a given sha. (remote must be fetched) 
+    :param sha: name of remote ref to test
+    :param file: path to modified file
+    :returns: git diff as a string
+    '''
+    cmd = "git diff -U0 %s %s" %(sha,file)
+    return system_output(cmd,repo_dir)
 
 def scons_build(work_dir, options=None, configure=True,
         configure_options=None):
