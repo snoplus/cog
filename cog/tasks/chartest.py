@@ -1,14 +1,17 @@
+'''A  task to look for bad ascii chars, missing EOF newlines, tabs and trailing whitespace'''
 import subprocess
 import os
-import task
-class CharTest(cog.task.Task):
+import cog.task
+
+# Chars that trigger a failure
+CRITICAL_CHARS = map(chr,range(0x00,0x09 +1) + range(0x0b,0x1f +1) + [0x7f])
+# Only look at files with extensions:
+CODE_EXTS     = [".py",".cc",".hh",".h",".c"]
+
+class CharCheck(cog.task.Task):
     '''Check a revision for tab chars, bad ASCII, missing EOF newlines and EOL whitespace
-    Clone the master repository, fetch the ref and examine the diff.   
+    Clone the master repository, fetch the PR and examine the diff. 
     '''
-    # Chars that trigger a failure
-    CRITICAL_CHARS = map(chr,range(0x00,0x09 +1) + range(0x0b,0x1f +1) + [0x7f])
-    # Only look at files with extensions:
-    CODE_EXTS     = [".py",".cc",".hh",".h",".c"]
 
     def __init__(self,*args):
         cog.task.Task.__init__(self,*args)
@@ -36,31 +39,33 @@ class CharTest(cog.task.Task):
                     'reason': 'incomplete base specification for merge'}
 
         #Clone Master Code 
-        code = cog.task.git_clone(git_url, sha, sha, work_dir=work_dir)
+        code = cog.task.git_clone(base_repo_url, base_repo_ref, base_repo_ref, work_dir=work_dir)
         if code is None or (code != 0 and code != 1):
             return {'success': False, 'reason': 'git clone failed',
                     'code': str(code)}
         #Fetch the fork changes
-        repo_dir = sha
+        repo_dir = base_repo_ref
         if work_dir:
-            repo_dir = os.path.join(work_dir,sha)
-        code = cog.task.git_fetch(base_repo_url,base_repo_ref,repo_dir)
+            repo_dir = os.path.join(work_dir,base_repo_ref)
+        code = cog.task.git_fetch(git_url,repo_dir)
         if code is None or (code != 0 and code != 1):
             return {'success': False, 'reason': 'git clone failed',
                     'code': str(code)}
         #Find which files have been changed
-        changed_files = cog.task.get_changed_files(base_repo_ref)
+        changed_files = cog.task.get_changed_files(sha,repo_dir)
+        #Only Interested in code files
+        changed_code_files = [file for file in changed_files if file.endswith(tuple(CODE_EXTS))]
         #Run a check on each of them
         success = True
         errors  = {}
-        for changed_file in changed_files:
-            diff   = cog.task.get_diff(changed_file)
-            file_errors = char_check(diff)
-            errors[filename] = file_errors
+        for changed_file in changed_code_files:
+            diff   = cog.task.get_diff(changed_file,sha,repo_dir)
+            file_errors = self.char_check(diff)
+            errors[changed_file] = file_errors
             if file_errors != []:
                 success = False
         # write web page
-        web_page = print_HTML(errors,"char_test.html")
+        web_page = self.print_HTML(errors,"char_test.html")
         attachments = []
         attachments.append({ 'filename': 'char_test.html',
                              'contents': web_page,
@@ -69,13 +74,13 @@ class CharTest(cog.task.Task):
         results = {'success':success, 'errors': errors, 'attachments':attachments}
         return results
 
-    def print_HTML(errors,out_file):
+    def print_HTML(self,errors,out_file):
         ''' Write HTML file results table to file and return as string
         :param errors:  errors dict
         :param out_file: output html path
         '''
         #count number of files failed
-        nfails = sum(1 for i in results.values() if i != [])
+        nfails = sum(1 for i in errors.values() if i != [])
         overall_pass = (nfails == 0)
         web_page = '''<html>                                                                  
         <head> 
@@ -122,7 +127,7 @@ class CharTest(cog.task.Task):
         for line in changedLines:
             trailingWhiteSpace = len(line) - len(line.rstrip())  
             if trailingWhiteSpace:
-                errors.append("%s trailing whitespace chars in line %s" %(trailingWhiteSpace,line))
+                errors.append("%s trailing whitespace chars in line ' %s '" %(trailingWhiteSpace,line))
             for y in CRITICAL_CHARS:
                 count = line.count(y)    
                 if count:
@@ -131,3 +136,8 @@ class CharTest(cog.task.Task):
                         error += " => new TAB chars"
                     errors.append(error)
         return errors
+
+if __name__ == '__main__':
+    import sys
+    task = CharCheck(*(sys.argv[1:]))
+    task()
