@@ -190,20 +190,22 @@ def git_merge(url, ref, work_dir=None):
 
 def get_changed_files(sha,repo_dir):
     '''Get a list of files changed in the fetched code using git diff. (remote must be fetched)
+    "..." gives only changes new in sha relative to local
     :param sha: sha of fork to test
     :returns: list of file paths relative to rat dir
     '''
-    cmd = "git diff --name-only %s" %(sha)
+    cmd = "git diff --name-only ...%s" %(sha)
     changed_files = system_output(cmd,repo_dir).splitlines()
     return changed_files
     
 def get_diff(file,sha,repo_dir):
     ''' Get the diff for a file for a given sha. (remote must be fetched) 
+    "..." gives only changes new in sha relative to local
     :param sha: name of remote ref to test
     :param file: path to modified file
     :returns: git diff as a string
     '''
-    cmd = "git diff -U0 %s %s" %(sha,file)
+    cmd = "git diff -U0 ...%s %s" %(sha,file)
     return system_output(cmd,repo_dir)
 
 def scons_build(work_dir, options=None, configure=True,
