@@ -121,8 +121,8 @@ class CharCheck(cog.task.Task):
         if "\ No newline at end of file" in diff:
             errors.append("No EOF newline")  
         # Get the new lines. Lines beginning "---" in header
-        changedLines = [x for x in diff.splitlines() if len(x)!= 0 and  x[0] == "-" 
-                        and x[:3] != "---"]
+        changedLines = [x for x in diff.splitlines() if len(x)!= 0 and x[0] == "+" 
+                        and x[:3] != "+++"]
         # Search lines for trailing whitespace and bad ASCII chars
         for line in changedLines:
             trailingWhiteSpace = len(line) - len(line.rstrip())  
