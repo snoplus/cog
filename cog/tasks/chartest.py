@@ -127,7 +127,7 @@ class CharCheck(cog.task.Task):
                 line_number = int(line.split("+")[1].split(",")[0])
 
             # look for new lines
-            if len(line) == 0 or line[0] != "+" or line[:3] == "+++"
+            if len(line) == 0 or line[0] != "+" or line[:3] == "+++":
                 continue
             
             #Check for trailing whitespace and bad chars
@@ -146,8 +146,8 @@ class CharCheck(cog.task.Task):
                     if ord(y) == 0x09:
                         error += " => new TABs"
                     errors.append(error)
-        line_number += 1
-    return errors
+            line_number += 1
+        return errors
 
 if __name__ == '__main__':
     import sys
