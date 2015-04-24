@@ -120,21 +120,33 @@ class CharCheck(cog.task.Task):
         # Check for git newline warning
         if "\ No newline at end of file" in diff:
             errors.append("No EOF newline")  
-        # Get the new lines. Lines beginning "---" in header
-        changedLines = [x for x in diff.splitlines() if len(x)!= 0 and x[0] == "+" 
-                        and x[:3] != "+++"]
-        # Search lines for trailing whitespace and bad ASCII chars
-        for line in changedLines:
-            trailingWhiteSpace = len(line) - len(line.rstrip())  
-            if trailingWhiteSpace:
-                errors.append("%s trailing whitespace chars in line ' %s '" %(trailingWhiteSpace,line))
+
+        for line in diff.splitlines():
+            # grab the hunk and count lines from here
+            if line[:2] == "@@":
+                line_number = int(line.split("+")[1].split(",")[0])
+
+            # look for new lines
+            if len(line) == 0 or line[0] != "+" or line[:3] == "+++":
+                continue
+            
+            #Check for trailing whitespace and bad chars
+            trailing_white_space = len(line) - len(line.rstrip())
+            is_comment = "//" in line
+            if trailing_white_space and not is_comment:
+                errors.append("%s trailing whitespace %s on line %s :  ' %s '" 
+                              %(trailing_white_space, "chars" if trailing_white_space >1
+                                else "char", line_number,line))
+
             for y in CRITICAL_CHARS:
-                count = line.count(y)    
+                count = line.count(y)
                 if count:
-                    error = "%s copies of char %s in line: ' %s'"  %(count,hex(ord(y)),line)
+                    error = "%s copies of char %s on line %s : ' %s '"  %(count,hex(ord(y)),
+                    line_number,line)
                     if ord(y) == 0x09:
-                        error += " => new TAB chars"
+                        error += " => new TABs"
                     errors.append(error)
+            line_number += 1
         return errors
 
 if __name__ == '__main__':
