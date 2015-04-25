@@ -121,10 +121,21 @@ class CharCheck(cog.task.Task):
         if "\ No newline at end of file" in diff:
             errors.append("No EOF newline")  
 
+        line_number = -999
         for line in diff.splitlines():
-            # grab the hunk and count lines from here
+            # grab the hunk and count lines from here. The form is @@ -18,4 +19,5 @@
+            # or @@ -18,0 +55 @@
             if line[:2] == "@@":
-                line_number = int(line.split("+")[1].split(",")[0])
+                try:
+                    line_context = line.split("+")[1].split("@@")[0]                                    
+                    if "," in line_context:
+                        line_number = line_context.split(",")[0]
+                    else:
+                        line_number = line_context
+                    line_number = int(line_number)
+                except: 
+                    print "warning: failed to interpret hunk header %s: line #s not provided" %(line)
+                    line_number = -999
 
             # look for new lines
             if len(line) == 0 or line[0] != "+" or line[:3] == "+++":
@@ -132,8 +143,7 @@ class CharCheck(cog.task.Task):
             
             #Check for trailing whitespace and bad chars
             trailing_white_space = len(line) - len(line.rstrip())
-            is_comment = "//" in line
-            if trailing_white_space and not is_comment:
+            if trailing_white_space: 
                 errors.append("%s trailing whitespace %s on line %s :  ' %s '" 
                               %(trailing_white_space, "chars" if trailing_white_space >1
                                 else "char", line_number,line))
@@ -142,7 +152,7 @@ class CharCheck(cog.task.Task):
                 count = line.count(y)
                 if count:
                     error = "%s copies of char %s on line %s : ' %s '"  %(count,hex(ord(y)),
-                    line_number,line)
+                                                                          line_number,line)
                     if ord(y) == 0x09:
                         error += " => new TABs"
                     errors.append(error)
