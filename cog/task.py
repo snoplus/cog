@@ -124,7 +124,7 @@ def system_output(cmd, work_dir=None):
     return subprocess.check_output([cmd], stderr=subprocess.STDOUT, executable='/bin/bash', shell=True)
 
 
-def git_clone(url, sha, target=None, work_dir=None):
+def git_clone(url, sha, target=None, work_dir=None, log=False):
     '''Clone a git repository.
 
     The arguments are parsed as::
@@ -137,7 +137,8 @@ def git_clone(url, sha, target=None, work_dir=None):
     :param sha: The SHA of the revision to check out
     :param target: Name of directory to clone into
     :param work_dir: Working directory in which to perform clone
-    :returns: Return code of "git clone"
+    :param include_log: Return console output also
+    :returns: Return code of "git clone", optionally console output
     '''
     if target is None:
         target = sha
@@ -149,10 +150,78 @@ def git_clone(url, sha, target=None, work_dir=None):
 
     if not os.path.exists(target):
         cmd = ' '.join(['git clone', url, target, '&& cd %s && ' % target,
-                       'git checkout', sha, '&> /dev/null'])
-        return system(cmd)
+                       'git checkout', sha, '&> clone.log'])
+        rc = system(cmd)
+
+        if log:
+            with open(os.path.join(target, 'clone.log')) as f:
+                clone_log = f.read()
+            return rc, clone_log
+
+        return rc
     else:
+        if log:
+            return None, None
         return None
+
+
+def simulate_pr(base_url, base_ref, fork_url, sha, target=None, work_dir=None,
+                log=False):
+    '''Simulate the merge button on GitHub.
+
+    The arguments are parsed as::
+
+        git clone [base_url] [work_dir/target]
+        cd [work_dir/target]
+        git checkout [base_ref]
+        git remote add fork [fork_url]
+        git fetch fork
+        git merge --no-edit --no-ff [sha]
+
+    You may need to set up SSH keys if authentication is needed.
+
+    :param base_url: The URL to git clone
+    :param base_ref: The ref to check out
+    :param fork_url: The URL for the fork under test
+    :param sha: The SHA of the revision (in the fork) to check out
+    :param target: Name of directory to clone into
+    :param work_dir: Working directory in which to perform clone
+    :param include_log: Return console output also
+    :returns: Last return code, optionally console output
+    '''
+    if target is None:
+        target = sha
+
+    if work_dir:
+        target = os.path.join(work_dir, target)
+
+    target = os.path.abspath(target)
+    logfile = os.path.join(work_dir, 'clone.log')
+
+    if not os.path.exists(target):
+        cmd = ' '.join(['git clone', base_url, target, '&&',
+                        'cd', target, '&&',
+                        'git checkout', base_ref, '&&',
+                        'git remote add fork', fork_url, '&&',
+                        'git fetch fork', '&&',
+                        'git merge --no-edit --no-ff', sha, '&&',
+                        '>>', logfile, '2>&1'])
+        rc = system(cmd)
+
+        if log:
+            try:
+                with open(logfile) as f:
+                    clone_log = f.read()
+            except Exception:
+                clone_log = cmd
+            return rc, clone_log
+
+        return rc
+    else:
+        if log:
+            return None, None
+        return None
+
 
 def git_fetch(url,repo_dir):
     '''Fetch a remote, commands executed in repository directory (usually not = work_dir)

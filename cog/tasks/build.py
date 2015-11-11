@@ -31,20 +31,26 @@ class Build(cog.task.Task):
             return {'success': False,
                     'reason': 'incomplete base specification for merge'}
 
-        # get the code
-        code = cog.task.git_clone(git_url, sha, sha, work_dir=work_dir)
-        if code is None or code != 0:
-            return {'success': False, 'reason': 'git clone failed',
-                    'code': str(code)}
+        # Get the code
+        # Case 1: Just check out a repo and run
+        if base_repo_ref is None:
+            code, log = cog.task.git_clone(git_url, sha, sha,
+                                           work_dir=work_dir, log=True)
+            if code is None or code != 0:
+                return {'success': False, 'reason': 'git clone failed',
+                        'code': str(code), 'log': str(log)}
 
-        checkout_path = os.path.join(work_dir, sha)
-
-        if base_repo_url is not None:
-            code = cog.task.git_merge(base_repo_url, base_repo_ref,
-                                      checkout_path)
+        # Case 2: Simulate a GitHub Pull request merge
+        else:
+            code, log = cog.task.simulate_pr(base_repo_url, base_repo_ref,
+                                             git_url, sha, sha,
+                                             work_dir=work_dir,
+                                             log=True)
             if code is None or code != 0:
                 return {'success': False, 'reason': 'git merge failed',
-                        'code': str(code)}
+                        'code': str(code), 'log': str(log)}
+
+        checkout_path = os.path.join(work_dir, sha)
 
         # build
         results = {'success': True, 'attachments': []}
