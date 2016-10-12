@@ -31,8 +31,10 @@ class CPPCheck(cog.task.Task):
         git_url = kwargs.get('git_url', None)
         base_repo_ref = kwargs.get('base_repo_ref', None)
         base_repo_url = kwargs.get('base_repo_url', None)
-        
-        ignore_folder_list = kwargs.get('ignore_folder_list', None)
+        # In a future iteration of this code one might make the 
+        # ignore folder part a bit more generic
+        # For now just ignore the libpq subdir
+        ignore_folder_list = "-isrc/libpq"
         
         if sha is None:
             return {'success': False, 'reason': 'missing revision id'}
@@ -42,12 +44,6 @@ class CPPCheck(cog.task.Task):
                 base_repo_ref and base_repo_url is None):
             return {'success': False,
                     'reason': 'incomplete base specification for merge'}
-
-        # Normalize the list into a cppcheck argument list
-        if ignore_folder_list is None:
-            ignore_folder_list = ''
-        else:
-            ignore_folder_list = '-i' + ignore_folder_list.replace(',',' -i')
             
         # Get the code
         # Case 1: Just check out a repo and run
