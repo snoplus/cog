@@ -1,5 +1,6 @@
 '''The CouchDB interface'''
 
+import time
 import couchdb
 
 class CouchDB(object):
@@ -42,22 +43,18 @@ class CouchDB(object):
  
         :returns: Generator of changed document IDs
         '''
-        last_seq = 0
-        filter_name = 'pytunia/task'
  
         while True:
-            changes = self.database.changes(feed='continuous', heartbeat=30000,
-                                            filter=filter_name, since=last_seq)
- 
+            rows = self.database.view('pytunia/pending_tasks')
             try:
-                for change in changes:
-                    doc_id = change['id']
-                    if (doc_id in self.database and
-                        'started' not in self.database[doc_id] and
-                        'queued' not in self.database[doc_id]):
-                        last_seq = change['seq'] + 1
-                        yield doc_id
+                for row in rows:
+                    yield row.id
  
             except couchdb.http.ResourceNotFound:
                 print 'get_tasks: Caught couchdb.http.ResourceNotFound'
+
+	    except ValueError as e:
+                print 'get_tasks: Caught ValueError:', e
+
+            time.sleep(60)
 

@@ -8,5 +8,5 @@ env
 
 doc/_build
 
-config/config.json
+config/*.json
 

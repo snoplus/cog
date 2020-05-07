@@ -34,7 +34,7 @@ class CPPCheck(cog.task.Task):
         # In a future iteration of this code one might make the 
         # ignore folder part a bit more generic
         # For now just ignore the libpq subdir
-        ignore_folder_list = "-isrc/libpq"
+        ignore_folder_list = "-isrc/libpq -isrc/pygresql "
         
         if sha is None:
             return {'success': False, 'reason': 'missing revision id'}
