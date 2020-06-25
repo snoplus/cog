@@ -108,7 +108,7 @@ class PyLint(cog.task.Task):
 
         # Format the results and write to an HTML file.
         file_html_pylint = os.path.join(checkout_path, 'pylint.html')
-        pylint_html = self.create_html_file(file_html_pylint, file_json_pylint, sha)
+        pylint_html = self.create_html_file(file_json_pylint, file_html_pylint, sha)
 
         attachment = {}
         attachment['filename'] = file_html_pylint
@@ -118,24 +118,27 @@ class PyLint(cog.task.Task):
 
         return results
 
-    def create_html_file(self, file_out, file_pylint, sha):
+    def create_html_file(self, file_json_in, file_html_out, sha=''):
         '''
-        Given the output of pylint, parse it to create an HTML document.
+        Given the output of pylint, parse it and create an HTML document.
 
-        :param file_out: HTML file to write the results to.
-        :param file_pylint: File with the pylint results (should be JSON format).
-        :param sha: Commit (for writing to HTML).
+        :param file_json_in: The JSON file with the pylint results to parse.
+        :param file_html_out: The HTML file to write the formatted results to.
+        :param sha: The SHA of the revision to check out (for writing to HTML).
         '''
-        # Create an HTML table from the pylint JSON results.
-        with open(file_pylint, 'r') as f:
+        # Load in the JSON file and convert to Python object.
+        with open(file_json_in, 'r') as f:
             pylint_json = json.load(f)
 
-        table, n_files = create_pylint_html_table(pylint_json)
-
         # Check how many files failed (if any).
+        n_files = len(set(obj['path'] for obj in pylint_json))
         status_colour = 'red' if n_files else 'green'
         status_msg = '{} files failed'.format(n_files) if n_files else 'All files passed'
         status = '<h2 style="color:{0}">{1} Pylint test.</h2>'.format(status_colour, status_msg)
+
+        # Create an HTML table from the pylint JSON results only if at least one failure.
+        # Otherwise, write an empty string to the HTML file in place of a table.
+        table = create_pylint_html_table(pylint_json) if n_files else ''
 
         # Write out the details of the pylint command.
         pylint_info = '<h3>Pylint warnings/errors enabled:</h3>\n'
@@ -156,7 +159,7 @@ class PyLint(cog.task.Task):
                                          pylint_table=table,
                                          pylint_info=pylint_info)
 
-        with open(file_out, 'w') as f:
+        with open(file_html_out, 'w') as f:
             f.write(pylint_html)
 
         return pylint_html
@@ -212,7 +215,7 @@ def create_pylint_html_table(pylint_list_objs):
     # Create the full table from the headers and remaining rows.
     table = '<table>\n{0}\n{1}</table>\n'.format(table_headers, table_rows)
 
-    return table, len(file_counter)
+    return table
 
 if __name__ == '__main__':
     import sys
