@@ -1,0 +1,23 @@
+<html>
+  <head>
+    <title>Pylint results</title>
+    <meta charset="utf-8">
+  </head>
+  <body>
+    <style>
+      body {{margin:20px;}}
+      table {{border-collapse: collapse;}}
+      table, th, td {{border: 1px solid black;}}
+      th, td {{padding: 2px 10px 2px 10px; text-align: left; vertical-align: top;}}
+    </style>
+    <h1>Pylint results</h1>
+    <h2>{sha}</h2>
+
+    {pylint_summary}
+
+    {pylint_table}
+
+    {pylint_info}
+
+  </body>
+</html>
