@@ -1,8 +1,8 @@
 '''A task that runs pylint on a revision.'''
 
-import os
 import json
 import glob
+import os.path
 import cog.task
 
 class PyLint(cog.task.Task):
@@ -94,7 +94,7 @@ class PyLint(cog.task.Task):
             results = {'success':False}
 
             attachment_err = {}
-            attachment_err['filename'] = file_log_pylint
+            attachment_err['filename'] = os.path.basename(file_log_pylint)
             with open(file_log_pylint, 'r') as f:
                 attachment_err['contents'] = f.read()
             attachment_err['link_name'] = 'pylint log'
@@ -111,7 +111,7 @@ class PyLint(cog.task.Task):
         pylint_html = self.create_html_file(file_json_pylint, file_html_pylint, sha)
 
         attachment = {}
-        attachment['filename'] = file_html_pylint
+        attachment['filename'] = os.path.basename(file_html_pylint)
         attachment['contents'] = pylint_html
         attachment['link_name'] = 'pylint'
         results['attachments'] = [attachment]
