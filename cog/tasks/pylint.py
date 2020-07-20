@@ -13,20 +13,22 @@ class PyLint(cog.task.Task):
     def __init__(self, *args):
         cog.task.Task.__init__(self, *args)
 
-        # Messages/warnings/errors to enable.
-        self.messages_list = ['E0001', 'C0303', 'C0326', 'C0330', 'C0116',
-                              'W0611', 'W0311', 'W0102', 'W0312']
+        # Messages/warnings/errors to enable and disable.
+        self.messages_enable = ['all']
+        self.messages_disable = ['R', 'C0103', 'C0301', 'C0413', 'C0114',
+                                 'W0122', 'W0406', 'W0621',
+                                 'E0401', 'E0602', 'E0611', 'E1101']
 
         # List of files or directories to ignore.
         # Note the limitiation of basenames.
-        self.ignore_list = ['ratdb.py', 'couchdb', 'ipyroot.py',
-                            'pg.py', 'pgdb.py', 'pgpasslib.py']
+        self.ignore_list = ['ratdb.py', 'ratdb_browse.py', 'ipyroot.py', 'ratproc',
+                            'couchdb', 'pg.py', 'pgdb.py', 'pgpasslib.py', 'PSQL.scons']
 
         # List of files or directories to run the linter on.
         # If a file does not have .py extension, must be explicitly specified.
         # Wildcard is expanded in the run method by glob module.
         self.file_list = ['SConstruct', 'python', 'bin/ratinfo', 'bin/rattest',
-                          'config/*.scons', 'config/ARCH.*']
+                          'config/*.scons', 'config/ARCH.*', 'example']
 
     def run(self, document, work_dir):
         '''
@@ -82,8 +84,9 @@ class PyLint(cog.task.Task):
         # Should pipe error to another file.
         file_json_pylint = os.path.join(checkout_path, 'pylint.json')
         file_log_pylint = os.path.join(checkout_path, 'pylint.log')
-        cmd = 'python3 -m pylint --disable=all --enable={0} --score=n --output-format=json --ignore={1} {2} > {3} 2> {4}'
-        cmd = cmd.format(','.join(self.messages_list),
+        cmd = 'python3 -m pylint --enable={0} --disable={1} --score=n --output-format=json --ignore={2} {3} > {4} 2> {5}'
+        cmd = cmd.format(','.join(self.messages_enable),
+                         ','.join(self.messages_disable),
                          ','.join(self.ignore_list),
                          ' '.join(self.file_list),
                          file_json_pylint, file_log_pylint)
@@ -132,9 +135,13 @@ class PyLint(cog.task.Task):
 
         # Check how many files failed (if any).
         n_files = len(set(obj['path'] for obj in pylint_json))
+        n_errs = len(pylint_json)
         status_colour = 'red' if n_files else 'green'
-        status_msg = '{} files failed'.format(n_files) if n_files else 'All files passed'
-        status = '<h2 style="color:{0}">{1} Pylint test.</h2>'.format(status_colour, status_msg)
+        status_msg = '{} files failed '.format(n_files) if n_files else 'All files passed '
+        status_len = ' ({} messages from Pylint)'.format(n_errs) if n_errs else ''
+        status = '<h2 style="color:{0}">{1}the Pylint test{2}.</h2>'.format(status_colour,
+                                                                            status_msg,
+                                                                            status_len)
 
         # Create an HTML table from the pylint JSON results only if at least one failure.
         # Otherwise, write an empty string to the HTML file in place of a table.
@@ -142,7 +149,9 @@ class PyLint(cog.task.Task):
 
         # Write out the details of the pylint command.
         pylint_info = '<h3>Pylint warnings/errors enabled:</h3>\n'
-        pylint_info += '<p>{0}</p>\n'.format(', '.join(self.messages_list))
+        pylint_info += '<p>{0}</p>\n'.format(', '.join(self.messages_enable))
+        pylint_info += '<h3>Pylint warnings/errors disabled:</h3>\n'
+        pylint_info += '<p>{0}</p>\n'.format(', '.join(self.messages_disable))
         pylint_info += '<h3>Files or modules that Pylint was run on:</h3>\n'
         pylint_info += '<p>{0}</p>\n'.format(', '.join(self.file_list))
         pylint_info += '<h3>Files or modules that were ignored by Pylint:</h3>\n'
