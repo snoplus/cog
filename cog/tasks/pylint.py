@@ -15,7 +15,9 @@ class PyLint(cog.task.Task):
 
         # Messages/warnings/errors to enable and disable.
         self.messages_enable = ['all']
-        self.messages_disable = ['R', 'C0103', 'C0301', 'C0413', 'C0114',
+        self.messages_disable = ['R0902', 'R0911', 'R0912', 'R0913', 'R0914',
+                                 'R1702', 'R0801', 'R1705', 'R0201', 'R0205',
+                                 'C0103', 'C0301', 'C0413', 'C0114',
                                  'W0122', 'W0406', 'W0621',
                                  'E0401', 'E0602', 'E0611', 'E1101']
 
@@ -149,13 +151,13 @@ class PyLint(cog.task.Task):
 
         # Write out the details of the pylint command.
         pylint_info = '<h3>Pylint warnings/errors enabled:</h3>\n'
-        pylint_info += '<p>{0}</p>\n'.format(', '.join(self.messages_enable))
+        pylint_info += '<p class="pylintinfo">{0}\n</p>\n'.format('<br>\n'.join(sorted(self.messages_enable)))
         pylint_info += '<h3>Pylint warnings/errors disabled:</h3>\n'
-        pylint_info += '<p>{0}</p>\n'.format(', '.join(self.messages_disable))
+        pylint_info += '<p class="pylintinfo">{0}\n</p>\n'.format('<br>\n'.join(sorted(self.messages_disable)))
         pylint_info += '<h3>Files or modules that Pylint was run on:</h3>\n'
-        pylint_info += '<p>{0}</p>\n'.format(', '.join(self.file_list))
+        pylint_info += '<p class="pylintinfo">{0}\n</p>\n'.format('<br>\n'.join(self.file_list))
         pylint_info += '<h3>Files or modules that were ignored by Pylint:</h3>\n'
-        pylint_info += '<p>{0}</p>\n'.format(', '.join(self.ignore_list))
+        pylint_info += '<p class="pylintinfo">{0}\n</p>\n'.format('<br>\n'.join(self.ignore_list))
 
         # Read in the template, apply string formatting, write to output file.
         base_dir = os.path.dirname(os.path.realpath(__file__))
