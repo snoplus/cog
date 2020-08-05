@@ -18,8 +18,7 @@ class PyLint(cog.task.Task):
         self.messages_disable = ['R0902', 'R0911', 'R0912', 'R0913', 'R0914',
                                  'R1702', 'R0801', 'R1705', 'R0201', 'R0205',
                                  'C0103', 'C0301', 'C0413', 'C0114',
-                                 'W0122', 'W0406', 'W0621',
-                                 'E0401', 'E0602', 'E0611', 'E1101']
+                                 'W0122', 'W0406', 'W0621', 'E0602']
 
         # List of files or directories to ignore.
         # Note the limitiation of basenames.
@@ -86,7 +85,7 @@ class PyLint(cog.task.Task):
         # Should pipe error to another file.
         file_json_pylint = os.path.join(checkout_path, 'pylint.json')
         file_log_pylint = os.path.join(checkout_path, 'pylint.log')
-        cmd = 'python3 -m pylint --enable={0} --disable={1} --score=n --output-format=json --ignore={2} {3} > {4} 2> {5}'
+        cmd = 'python3 -m pylint --enable={0} --disable={1} --score=n --generated-members=plot_options --ignored-modules=ROOT,SCons --output-format=json --ignore={2} {3} > {4} 2> {5}'
         cmd = cmd.format(','.join(self.messages_enable),
                          ','.join(self.messages_disable),
                          ','.join(self.ignore_list),
