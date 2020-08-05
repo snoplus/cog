@@ -85,12 +85,25 @@ class PyLint(cog.task.Task):
         # Should pipe error to another file.
         file_json_pylint = os.path.join(checkout_path, 'pylint.json')
         file_log_pylint = os.path.join(checkout_path, 'pylint.log')
-        cmd = 'python3 -m pylint --enable={0} --disable={1} --score=n --generated-members=plot_options --ignored-modules=ROOT,SCons --output-format=json --ignore={2} {3} > {4} 2> {5}'
-        cmd = cmd.format(','.join(self.messages_enable),
-                         ','.join(self.messages_disable),
-                         ','.join(self.ignore_list),
-                         ' '.join(self.file_list),
-                         file_json_pylint, file_log_pylint)
+
+        # Base command with all options specified.
+        cmd_list = ['python3', '-m', 'pylint',
+                    '--enable={0}'.format(','.join(self.messages_enable)),
+                    '--disable={0}'.format(','.join(self.messages_disable)),
+                    '--score=n',
+                    '--generated-members=plot_options',
+                    '--ignored-modules=ROOT,SCons',
+                    '--output-format=json',
+                    '--ignore={0}'.format(','.join(self.ignore_list))]
+
+        # Unnamed arguments (the files to process).
+        cmd_list += self.file_list
+
+        # Output the log.
+        cmd_list += ['>', file_json_pylint, '2>', file_log_pylint]
+
+        # Finally, run the command.
+        cmd = ' '.join(cmd_list)
         code = cog.task.system(cmd, checkout_path)
 
         # If there was an error, return unsuccessful.
