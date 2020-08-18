@@ -23,8 +23,6 @@ setup(
     packages = ['cog', 'cog.tasks'],
     scripts = ['bin/cog', 'bin/q', 'bin/qsetup', 'bin/sbatch.scr'],
     install_requires = ['couchdb', 'sphinx'],
-
-    #include_package_data = True,
-    #package_data = {'cog': ['cog.tar.gz']}
+    include_package_data = True
 )
 
