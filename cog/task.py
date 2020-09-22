@@ -20,10 +20,22 @@ class Task(object):
     :param password: Database password
     :param doc_id: Document ID of the task to run
     '''
-    def __init__(self, host, dbname, username, password, doc_id):
-        self.couchdb = cog.db.CouchDB(host, dbname, username, password)
-        self.database = self.couchdb.database
-        self.document = self.database[doc_id]
+    def __init__(self, *args):
+        # Check if arguments are passed and attempt to unpack the arguments if so.
+        # If not, do not initialize CouchDB and set all related attributes to None.
+        # In this case, only the run method can be used.
+        if args:
+            host, dbname, username, password, doc_id = args
+
+            self.couchdb = cog.db.CouchDB(host, dbname, username, password)
+            self.database = self.couchdb.database
+            self.document = self.database[doc_id]
+
+        else:
+            self.couchdb = None
+            self.database = None
+            self.document = None
+
         self.work_dir = tempfile.mkdtemp()  # working directory
 
     def __call__(self, clone=True, build=True):
@@ -148,21 +160,30 @@ def git_clone(url, sha, target=None, work_dir=None, log=False):
 
     target = os.path.abspath(target)
 
+    # If the target does not exist, clone it.
     if not os.path.exists(target):
         cmd = ' '.join(['git clone', url, target, '&& cd %s && ' % target,
                        'git checkout', sha, '&> clone.log'])
-        rc = system(cmd)
 
-        if log:
-            with open(os.path.join(target, 'clone.log')) as f:
-                clone_log = f.read()
-            return rc, clone_log
-
-        return rc
+    # If the target does exist, change into it and attempt to checkout the sha.
     else:
-        if log:
-            return None, None
-        return None
+        clone_warning = 'Clone already exists at: {}. Attempting to reuse. '.format(target)
+        clone_warning += 'Delete or move this folder to force a reclone of the repository, '
+        clone_warning += 'or change the target.'
+        print clone_warning
+
+        cmd = ' '.join(['cd %s && ' % target,
+                        'git checkout', sha, '&> clone.log'])
+
+    rc = system(cmd)
+
+    if log:
+        with open(os.path.join(target, 'clone.log')) as f:
+            clone_log = f.read()
+
+        return rc, clone_log
+
+    return rc
 
 
 def simulate_pr(base_url, base_ref, fork_url, sha, target=None, work_dir=None,
