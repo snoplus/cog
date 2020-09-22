@@ -20,10 +20,22 @@ class Task(object):
     :param password: Database password
     :param doc_id: Document ID of the task to run
     '''
-    def __init__(self, host, dbname, username, password, doc_id):
-        self.couchdb = cog.db.CouchDB(host, dbname, username, password)
-        self.database = self.couchdb.database
-        self.document = self.database[doc_id]
+    def __init__(self, *args):
+        # Check if arguments are passed and attempt to unpack the arguments if so.
+        # If not, do not initialize CouchDB and set all related attributes to None.
+        # In this case, only the run method can be used.
+        if args:
+            host, dbname, username, password, doc_id = args
+
+            self.couchdb = cog.db.CouchDB(host, dbname, username, password)
+            self.database = self.couchdb.database
+            self.document = self.database[doc_id]
+
+        else:
+            self.couchdb = None
+            self.database = None
+            self.document = None
+
         self.work_dir = tempfile.mkdtemp()  # working directory
 
     def __call__(self, clone=True, build=True):
