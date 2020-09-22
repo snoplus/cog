@@ -160,21 +160,30 @@ def git_clone(url, sha, target=None, work_dir=None, log=False):
 
     target = os.path.abspath(target)
 
+    # If the target does not exist, clone it.
     if not os.path.exists(target):
         cmd = ' '.join(['git clone', url, target, '&& cd %s && ' % target,
                        'git checkout', sha, '&> clone.log'])
-        rc = system(cmd)
 
-        if log:
-            with open(os.path.join(target, 'clone.log')) as f:
-                clone_log = f.read()
-            return rc, clone_log
-
-        return rc
+    # If the target does exist, change into it and attempt to checkout the sha.
     else:
-        if log:
-            return None, None
-        return None
+        clone_warning = 'Clone already exists at: {}. Attempting to reuse. '.format(target)
+        clone_warning += 'Delete or move this folder to force a reclone of the repository, '
+        clone_warning += 'or change the target.'
+        print clone_warning
+
+        cmd = ' '.join(['cd %s && ' % target,
+                        'git checkout', sha, '&> clone.log'])
+
+    rc = system(cmd)
+
+    if log:
+        with open(os.path.join(target, 'clone.log')) as f:
+            clone_log = f.read()
+
+        return rc, clone_log
+
+    return rc
 
 
 def simulate_pr(base_url, base_ref, fork_url, sha, target=None, work_dir=None,
