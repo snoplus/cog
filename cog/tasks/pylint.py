@@ -18,12 +18,12 @@ class PyLint(cog.task.Task):
         self.messages_disable = ['R0902', 'R0911', 'R0912', 'R0913', 'R0914',
                                  'R1702', 'R0801', 'R1705', 'R0201', 'R0205',
                                  'C0103', 'C0301', 'C0413', 'C0114',
-                                 'W0122', 'W0406', 'W0621', 'E0602']
+                                 'W0122', 'W0406', 'W0621', 'W0707', 'E0602']
 
         # List of files or directories to ignore.
         # Note the limitiation of basenames.
         self.ignore_list = ['ratdb.py', 'ratdb_browse.py', 'ipyroot.py', 'ratproc',
-                            'couchdb', 'pg.py', 'pgdb.py', 'pgpasslib.py', 'PSQL.scons']
+                            'pg.py', 'pgdb.py', 'pgpasslib.py', 'PSQL.scons']
 
         # List of files or directories to run the linter on.
         # If a file does not have .py extension, must be explicitly specified.
@@ -81,6 +81,14 @@ class PyLint(cog.task.Task):
             file_list_all += fl
         self.file_list = [f.replace(checkout_path + '/', '') for f in file_list_all]
 
+        # Get the pylint version being used.
+        v_cmd_list = ['python3', '-m', 'pylint', '--version']
+        versions = cog.task.system_output(' '.join(v_cmd_list), checkout_path)
+        pylint_version = ''
+        for v in versions.split('\n'):
+            if 'pylint' in v.lower():
+                pylint_version = v.split(' ')[-1]
+
         # Run pylint (must be run with Python3).
         # Should pipe error to another file.
         file_json_pylint = os.path.join(checkout_path, 'pylint.json')
@@ -98,6 +106,10 @@ class PyLint(cog.task.Task):
 
         # Unnamed arguments (the files to process).
         cmd_list += self.file_list
+
+        # Get the command string (without pipes to files) for storing in the document.
+        # Exclude the JSON formatting option since it is only for processing.
+        pylint_command = ' '.join([c for c in cmd_list if c != '--output-format=json'])
 
         # Output the log.
         cmd_list += ['>', file_json_pylint, '2>', file_log_pylint]
@@ -125,7 +137,8 @@ class PyLint(cog.task.Task):
 
         # Format the results and write to an HTML file.
         file_html_pylint = os.path.join(checkout_path, 'pylint.html')
-        pylint_html = self.create_html_file(file_json_pylint, file_html_pylint, sha)
+        pylint_html = self.create_html_file(file_json_pylint, file_html_pylint,
+                                            pylint_command, pylint_version, sha)
 
         attachment = {}
         attachment['filename'] = os.path.basename(file_html_pylint)
@@ -135,7 +148,8 @@ class PyLint(cog.task.Task):
 
         return results
 
-    def create_html_file(self, file_json_in, file_html_out, sha=''):
+    def create_html_file(self, file_json_in, file_html_out,
+                         pylint_command, pylint_version, sha=''):
         '''
         Given the output of pylint, parse it and create an HTML document.
 
@@ -170,6 +184,8 @@ class PyLint(cog.task.Task):
         pylint_info += '<p class="pylintinfo">{0}\n</p>\n'.format('<br>\n'.join(self.file_list))
         pylint_info += '<h3>Files or modules that were ignored by Pylint:</h3>\n'
         pylint_info += '<p class="pylintinfo">{0}\n</p>\n'.format('<br>\n'.join(self.ignore_list))
+        pylint_info += '<h3>Full Pylint command:</h3>\n'
+        pylint_info += '<p class="pylintinfo">{0}\n</p>\n'.format(pylint_command)
 
         # Read in the template, apply string formatting, write to output file.
         base_dir = os.path.dirname(os.path.realpath(__file__))
@@ -180,7 +196,8 @@ class PyLint(cog.task.Task):
         pylint_html = pylint_html.format(sha=sha,
                                          pylint_summary=status,
                                          pylint_table=table,
-                                         pylint_info=pylint_info)
+                                         pylint_info=pylint_info,
+                                         pylint_version=pylint_version)
 
         with open(file_html_out, 'w') as f:
             f.write(pylint_html)
