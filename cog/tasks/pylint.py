@@ -15,21 +15,24 @@ class PyLint(cog.task.Task):
 
         # Messages/warnings/errors to enable and disable.
         self.messages_enable = ['all']
-        self.messages_disable = ['R0902', 'R0911', 'R0912', 'R0913', 'R0914',
+        self.messages_disable = ['I0011', 'I0020', 'R0902',
+                                 'R0911', 'R0912', 'R0913', 'R0914', 'R0915',
                                  'R1702', 'R0801', 'R1705', 'R0201', 'R0205',
-                                 'C0103', 'C0301', 'C0413', 'C0114',
-                                 'W0122', 'W0406', 'W0621', 'W0707', 'E0602']
+                                 'C0103', 'C0301', 'C0302', 'C0413', 'C0114',
+                                 'W0122', 'W0406', 'W0621', 'W0703', 'W0707',
+                                 'E0602']
 
         # List of files or directories to ignore.
         # Note the limitiation of basenames.
-        self.ignore_list = ['ratdb.py', 'ratdb_browse.py', 'ipyroot.py', 'ratproc',
-                            'pg.py', 'pgdb.py', 'pgpasslib.py', 'PSQL.scons']
+        self.ignore_list = ['ipyroot.py', 'PSQL.scons',
+                            'pg.py', 'pgdb.py', 'pgpasslib.py']
 
         # List of files or directories to run the linter on.
         # If a file does not have .py extension, must be explicitly specified.
         # Wildcard is expanded in the run method by glob module.
-        self.file_list = ['SConstruct', 'python', 'bin/ratinfo', 'bin/rattest',
-                          'config/*.scons', 'config/ARCH.*', 'example']
+        self.file_list = ['python', 'SConstruct',
+                          'bin/ratdb', 'bin/ratinfo', 'bin/rattest',
+                          'config/*.scons', 'config/ARCH.*', 'example/*/*.py']
 
     def run(self, document, work_dir):
         '''
@@ -225,6 +228,7 @@ def create_pylint_html_table(pylint_list_objs):
     file_name = ''
     file_counter = []
     table_rows = ''
+
     for obj in pylint_list_objs:
         # Start the table row, each object is a row.
         table_rows += '<tr>\n'
@@ -244,6 +248,12 @@ def create_pylint_html_table(pylint_list_objs):
             val = obj[key]
             if key == "message":
                 val = val.split('\n')[0]
+
+            # Attempt to escape curly braces, if val is a string.
+            try:
+                val = val.replace('{', '{{').replace('}', '}}')
+            except AttributeError:
+                pass
 
             table_rows += '<td>{0}</td>\n'.format(val)
 
