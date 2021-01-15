@@ -3,7 +3,10 @@ import os
 import cog.task
 
 # Only allow ASCII characters, and a specific subset of that.
-ALLOWED_CHARS = map(chr, [0x0a] + range(0x20, 0x7e + 1))
+# Check for a specific range of unicode code points.
+CHAR_MIN = 0x20
+CHAR_MAX = 0x7e
+ALLOWED_CHARS = (0x0a,)
 
 # Only look at files with extensions:
 CODE_EXTS = [".py", ".scons", ".cc", ".hh", ".h", ".c", ".C",
@@ -166,7 +169,8 @@ class CharCheck(cog.task.Task):
 
             # Check the line for disallowed characters and keep track of the counts.
             for c in line_unicode:
-                if c not in ALLOWED_CHARS:
+                co = ord(c)
+                if (co < CHAR_MIN or co > CHAR_MAX) and (co not in ALLOWED_CHARS):
                     if c not in bad_chars:
                         bad_chars[c] = 1
                     else:
