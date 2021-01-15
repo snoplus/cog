@@ -1,12 +1,17 @@
 '''A  task to look for bad ascii chars, missing EOF newlines, tabs and trailing whitespace'''
-import subprocess
 import os
 import cog.task
 
-# Chars that trigger a failure
-CRITICAL_CHARS = map(chr,range(0x00,0x09 +1) + range(0x0b,0x1f +1) + [0x7f])
+# Only allow ASCII characters, and a specific subset of that.
+# Check for a specific range of unicode code points.
+CHAR_MIN = 0x20
+CHAR_MAX = 0x7e
+ALLOWED_CHARS = (0x0a,)
+
 # Only look at files with extensions:
-CODE_EXTS     = [".py",".cc",".hh",".h",".c"]
+CODE_EXTS = [".py", ".scons", ".cc", ".hh", ".h", ".c", ".C",
+             ".tex", ".inc_tex", ".md", ".html",
+             ".ratdb", ".geo", ".mac"]
 
 class CharCheck(cog.task.Task):
     '''Check a revision for tab chars, bad ASCII, missing EOF newlines and EOL whitespace
@@ -59,7 +64,7 @@ class CharCheck(cog.task.Task):
         success = True
         errors  = {}
         for changed_file in changed_code_files:
-            diff   = cog.task.get_diff(changed_file,sha,repo_dir)
+            diff = cog.task.get_diff(changed_file,sha,repo_dir)
             file_errors = self.char_check(diff)
             errors[changed_file] = file_errors
             if file_errors != []:
@@ -109,9 +114,9 @@ class CharCheck(cog.task.Task):
         with open(out_file,"w") as f:
             f.write(web_page)           
         return web_page
- 
+
     def char_check(self,diff):
-        ''' Read the diff for a file, find tab chars, bad ASCII chars, trailing whitespace 
+        ''' Read the diff for a file, find tab chars, bad ASCII chars, trailing whitespace
         and missing EOF newlines
         :param diff: the diff string
         :returns: a list of errors for the file
@@ -119,7 +124,7 @@ class CharCheck(cog.task.Task):
         errors = []
         # Check for git newline warning
         if "\ No newline at end of file" in diff:
-            errors.append("No EOF newline")  
+            errors.append("No EOF newline")
 
         line_number = -999
         for line in diff.splitlines():
@@ -127,35 +132,64 @@ class CharCheck(cog.task.Task):
             # or @@ -18,0 +55 @@
             if line[:2] == "@@":
                 try:
-                    line_context = line.split("+")[1].split("@@")[0]                                    
+                    line_context = line.split("+")[1].split("@@")[0]
                     if "," in line_context:
                         line_number = line_context.split(",")[0]
                     else:
                         line_number = line_context
                     line_number = int(line_number)
-                except: 
+                except:
                     print "warning: failed to interpret hunk header %s: line #s not provided" %(line)
                     line_number = -999
 
             # look for new lines
             if len(line) == 0 or line[0] != "+" or line[:3] == "+++":
                 continue
-            
-            #Check for trailing whitespace and bad chars
-            trailing_white_space = len(line) - len(line.rstrip())
-            if trailing_white_space: 
-                errors.append("%s trailing whitespace %s on line %s :  ' %s '" 
-                              %(trailing_white_space, "chars" if trailing_white_space >1
-                                else "char", line_number,line))
 
-            for y in CRITICAL_CHARS:
-                count = line.count(y)
-                if count:
-                    error = "%s copies of char %s on line %s : ' %s '"  %(count,hex(ord(y)),
-                                                                          line_number,line)
-                    if ord(y) == 0x09:
-                        error += " => new TABs"
-                    errors.append(error)
+            # Check for trailing whitespace.
+            trailing_white_space = len(line) - len(line.rstrip())
+            if trailing_white_space:
+                errors.append("{} trailing whitespace {} on line {}: ' {} '"
+                              "".format(trailing_white_space,
+                                        "chars" if trailing_white_space > 1 else "char",
+                                        line_number,
+                                        line[0:100]))
+
+            bad_chars = {}
+
+            # Try to decode the byte string using UTF-8.
+            # If it can't be done, just work with the byte string.
+            # Issue error about a different file encoding.
+            try:
+                line_unicode = line.decode('utf-8')
+            except UnicodeDecodeError as e:
+                line_unicode = line
+                errors.append("Could not decode line {} using UTF-8. "
+                              "Please check the file encoding.".format(line_number))
+
+            # Check the line for disallowed characters and keep track of the counts.
+            for c in line_unicode:
+                co = ord(c)
+                if (co < CHAR_MIN or co > CHAR_MAX) and (co not in ALLOWED_CHARS):
+                    if c not in bad_chars:
+                        bad_chars[c] = 1
+                    else:
+                        bad_chars[c] += 1
+
+            for c, count in bad_chars.items():
+                # Generate an error message of the number of counts of bad characters.
+                # Only print up to the first 100 characters of the line.
+                error = "{} {} of char {} on line {}: ' {} '".format(count,
+                                                                     "copy" if count == 1 else "copies",
+                                                                     hex(ord(c)),
+                                                                     line_number,
+                                                                     line[0:100])
+
+                if ord(c) == 0x09:
+                    error += " => new TABs"
+
+                errors.append(error)
+
             line_number += 1
         return errors
 
