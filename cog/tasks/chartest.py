@@ -1,4 +1,4 @@
-'''A  task to look for bad ascii chars, missing EOF newlines, tabs and trailing whitespace'''
+'''A  task to look for bad and non-ASCII chars, missing EOF newlines, tabs and trailing whitespace'''
 import os
 import cog.task
 
@@ -15,7 +15,7 @@ CODE_EXTS = [".py", ".scons", ".cc", ".hh", ".h", ".c", ".C",
 
 class CharCheck(cog.task.Task):
     '''Check a revision for tab chars, bad ASCII, missing EOF newlines and EOL whitespace
-    Clone the master repository, fetch the PR and examine the diff. 
+    Clone the master repository, fetch the PR and examine the diff.
     '''
 
     def __init__(self,*args):
@@ -43,7 +43,7 @@ class CharCheck(cog.task.Task):
             return {'success': False,
                     'reason': 'incomplete base specification for merge'}
 
-        #Clone Master Code 
+        #Clone Master Code
         code = cog.task.git_clone(base_repo_url, base_repo_ref, base_repo_ref, work_dir=work_dir)
         if code is None or (code != 0 and code != 1):
             return {'success': False, 'reason': 'git clone failed',
@@ -75,7 +75,7 @@ class CharCheck(cog.task.Task):
         attachments.append({ 'filename': 'char_test.html',
                              'contents': web_page,
                              'link_name': "CharTest",
-                             }) 
+                             })
         results = {'success':success, 'errors': errors, 'attachments':attachments}
         return results
 
@@ -87,37 +87,47 @@ class CharCheck(cog.task.Task):
         #count number of files failed
         nfails = sum(1 for i in errors.values() if i != [])
         overall_pass = (nfails == 0)
-        web_page = '''<html>                                                                  
-        <head> 
-        <title> White Space and ASCII Checker </title>
+        web_page = '''
+        <html>
+        <head>
+            <title> White Space and ASCII Checker </title>
+            <meta charset="utf-8">
         </head>
         <body>
         <h1> White Space and ASCII Checker </h1>
-        <h2 style="color: %s"> %s </h2>
+        <h2 style="color: {}"> {} </h2>
         <table border>
-        ''' %('green' if overall_pass else 'red', 
-              'All Files Passed' if overall_pass else "%i Files Failed" %nfails)
+        '''.format('green' if overall_pass else 'red',
+                   'All Files Passed' if overall_pass else "{} Files Failed".format(nfails))
+
         for filename, error_list in errors.items():
             passed = (error_list == [])
-            web_page +=  '''
-            <tr> 
-            <th> %s </th>    
-            <td style="color: %s"> %s </td>
-            <td>  %s </td>
+            web_page += '''
+            <tr>
+            <th> {} </th>
+            <td style="color: {}"> {} </td>
+            <td> {} </td>
             </tr>
-           ''' %(filename, 'green' if passed else 'red', 'PASS' if passed else "FAIL",
-                 "<br /> ".join(error_list) if not passed else "")
-        web_page+= '''                                              
-                      </table>
-                   </body>
-                 </html>                                                                                                 '''
-        with open(out_file,"w") as f:
-            f.write(web_page)           
+            '''.format(filename,
+                       'green' if passed else 'red',
+                       'PASS' if passed else "FAIL",
+                       "<br /> ".join(error_list) if not passed else "")
+        web_page += '''
+        </table>
+        </body>
+        </html>
+        '''
+
+        with open(out_file, "w") as f:
+            f.write(web_page)
+
         return web_page
 
-    def char_check(self,diff):
-        ''' Read the diff for a file, find tab chars, bad ASCII chars, trailing whitespace
-        and missing EOF newlines
+    def char_check(self, diff):
+        '''
+        Read the diff for a file,
+        find tab chars, bad and non-ASCII chars,
+        trailing whitespace, and missing EOF newlines
         :param diff: the diff string
         :returns: a list of errors for the file
         '''
@@ -139,7 +149,8 @@ class CharCheck(cog.task.Task):
                         line_number = line_context
                     line_number = int(line_number)
                 except:
-                    print "warning: failed to interpret hunk header %s: line #s not provided" %(line)
+                    print("warning: failed to interpret hunk header {}: "
+                          "line #s not provided".format(line))
                     line_number = -999
 
             # look for new lines
@@ -149,48 +160,54 @@ class CharCheck(cog.task.Task):
             # Check for trailing whitespace.
             trailing_white_space = len(line) - len(line.rstrip())
             if trailing_white_space:
-                errors.append("{} trailing whitespace {} on line {}: ' {} '"
-                              "".format(trailing_white_space,
-                                        "chars" if trailing_white_space > 1 else "char",
-                                        line_number,
-                                        line[0:100]))
-
-            bad_chars = {}
+                errors.append("{} trailing whitespace {} on line {}: "
+                              "' {} '".format(trailing_white_space,
+                                              "chars" if trailing_white_space > 1 else "char",
+                                              line_number,
+                                              line[0:100]))
 
             # Try to decode the byte string using UTF-8.
             # If it can't be done, just work with the byte string.
             # Issue error about a different file encoding.
             try:
                 line_unicode = line.decode('utf-8')
-            except UnicodeDecodeError as e:
+            except UnicodeDecodeError:
                 line_unicode = line
                 errors.append("Could not decode line {} using UTF-8. "
                               "Please check the file encoding.".format(line_number))
 
-            # Check the line for disallowed characters and keep track of the counts.
-            for c in line_unicode:
-                co = ord(c)
-                if (co < CHAR_MIN or co > CHAR_MAX) and (co not in ALLOWED_CHARS):
-                    if c not in bad_chars:
-                        bad_chars[c] = 1
-                    else:
-                        bad_chars[c] += 1
+            # Check the minimum and maximum ordinal range of the entire line.
+            # More efficient than a standard for loop over characters in the line,
+            # assuming that most lines don't contain non-ASCII characters.
+            # Only loop through characters if check is failed.
+            if ord(min(line_unicode)) < CHAR_MIN or ord(max(line_unicode)) > CHAR_MAX:
+                # Check the line for disallowed characters and keep track of the counts.
+                bad_chars = {}
+                for c in line_unicode:
+                    co = ord(c)
+                    if (co < CHAR_MIN or co > CHAR_MAX) and (co not in ALLOWED_CHARS):
+                        if c not in bad_chars:
+                            bad_chars[c] = 1
+                        else:
+                            bad_chars[c] += 1
 
-            for c, count in bad_chars.items():
-                # Generate an error message of the number of counts of bad characters.
-                # Only print up to the first 100 characters of the line.
-                error = "{} {} of char {} on line {}: ' {} '".format(count,
-                                                                     "copy" if count == 1 else "copies",
-                                                                     hex(ord(c)),
-                                                                     line_number,
-                                                                     line[0:100])
+                for c, count in bad_chars.items():
+                    # Generate an error message of the number of counts of bad characters.
+                    # Only print up to the first 100 characters of the line.
+                    error = ("{} {} of char {} on line {}: "
+                             "' {} '".format(count,
+                                             "copy" if count == 1 else "copies",
+                                             hex(ord(c)),
+                                             line_number,
+                                             line[0:100]))
 
-                if ord(c) == 0x09:
-                    error += " => new TABs"
+                    if ord(c) == 0x09:
+                        error += " => new TABs"
 
-                errors.append(error)
+                    errors.append(error)
 
             line_number += 1
+
         return errors
 
 if __name__ == '__main__':
