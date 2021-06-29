@@ -20,7 +20,7 @@ class PyLint(cog.task.Task):
                                  'R1702', 'R0801', 'R1705', 'R0201', 'R0205',
                                  'C0103', 'C0301', 'C0302', 'C0413', 'C0114',
                                  'W0122', 'W0406', 'W0621', 'W0703', 'W0707',
-                                 'E0602']
+                                 'W0511', 'E0602']
 
         # List of files or directories to ignore.
         # Note the limitiation of basenames.
