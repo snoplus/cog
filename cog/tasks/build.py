@@ -9,6 +9,7 @@ class Build(cog.task.Task):
     Check out and compile a git revision'''
     def __init__(self, *args):
         cog.task.Task.__init__(self, *args)
+        self.options = []
 
     def run(self, document, work_dir):
         '''Run the task.
@@ -17,6 +18,7 @@ class Build(cog.task.Task):
         :param work_dir: Temporary working directory
         '''
         kwargs = document.get('kwargs', {})
+        options = kwargs.get('options', None)
         sha = kwargs.get('sha', None)
         git_url = kwargs.get('git_url', None)
         base_repo_ref = kwargs.get('base_repo_ref', None)
@@ -30,6 +32,16 @@ class Build(cog.task.Task):
                 base_repo_ref and base_repo_url is None):
             return {'success': False,
                     'reason': 'incomplete base specification for merge'}
+
+        # Configure build options
+        if options is not None:
+            if isinstance(options, (list, tuple)):
+                self.options += options
+            elif isinstance(options, (str, unicode)):
+                self.options += options.split()
+            else:
+                print('SCons build options must be either a list or string. '
+                      'Ignoring input: {}.'.format(options))
 
         # Get the code
         # Case 1: Just check out a repo and run
@@ -54,7 +66,7 @@ class Build(cog.task.Task):
 
         # build
         results = {'success': True, 'attachments': []}
-        code, log_text = cog.task.scons_build(checkout_path)
+        code, log_text = cog.task.scons_build(checkout_path, options=self.options)
         results['scons_returncode'] = code
 
         if code is None:
