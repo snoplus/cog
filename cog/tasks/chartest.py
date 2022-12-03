@@ -8,10 +8,13 @@ CHAR_MIN = 0x20
 CHAR_MAX = 0x7e
 ALLOWED_CHARS = (0x0a,)
 
-# Only look at files with extensions:
-CODE_EXTS = [".py", ".scons", ".cc", ".hh", ".h", ".c", ".C",
-             ".tex", ".inc_tex", ".md", ".html",
-             ".ratdb", ".geo", ".mac"]
+# Only look at files with extensions (or names, in the case of no extension):
+CODE_EXTS = [".py", ".scons", ".config",
+             ".cc", ".c", ".C", ".cpp", ".hh", ".h", ".hpp", ".tpp",
+             ".tex", ".inc_tex", ".html", ".md", ".txt", ".json",
+             ".mac", ".ratdb", ".geo",
+             ".gitattributes", ".gitignore",
+             "SConstruct", "Makefile", "configure"]
 
 class CharCheck(cog.task.Task):
     '''Check a revision for tab chars, bad ASCII, missing EOF newlines and EOL whitespace
@@ -62,7 +65,7 @@ class CharCheck(cog.task.Task):
         changed_code_files = [file for file in changed_files if file.endswith(tuple(CODE_EXTS))]
         #Run a check on each of them
         success = True
-        errors  = {}
+        errors = {}
         for changed_file in changed_code_files:
             diff = cog.task.get_diff(changed_file,sha,repo_dir)
             file_errors = self.char_check(diff)
@@ -98,7 +101,9 @@ class CharCheck(cog.task.Task):
         <h2 style="color: {}"> {} </h2>
         <table border>
         '''.format('green' if overall_pass else 'red',
-                   'All Files Passed' if overall_pass else "{} Files Failed".format(nfails))
+                   ('All files passed chartest'
+                    if overall_pass else ("{} files failed chartest".format(nfails)
+                                          if nfails > 1 else "1 file failed chartest")))
 
         for filename, error_list in errors.items():
             passed = (error_list == [])
@@ -132,12 +137,18 @@ class CharCheck(cog.task.Task):
         :returns: a list of errors for the file
         '''
         errors = []
+
         # Check for git newline warning
         if "\ No newline at end of file" in diff:
             errors.append("No EOF newline")
 
         line_number = -999
-        for line in diff.splitlines():
+
+        # Grab the line with and without the ending linebreaks included.
+        # Use line /without/ linebreaks to check for blank lines and whitespace.
+        # Use line /with/ linebreaks to check for bad characters
+        # (including invisible ones).
+        for line, line_lb in zip(diff.splitlines(False), diff.splitlines(True)):
             # grab the hunk and count lines from here. The form is @@ -18,4 +19,5 @@
             # or @@ -18,0 +55 @@
             if line[:2] == "@@":
@@ -153,26 +164,29 @@ class CharCheck(cog.task.Task):
                           "line #s not provided".format(line))
                     line_number = -999
 
-            # look for new lines
+            # Look for new lines or other lines to skip.
             if len(line) == 0 or line[0] != "+" or line[:3] == "+++":
                 continue
+
+            # Remove first instance of '+' character from line.
+            line = line[1:]
 
             # Check for trailing whitespace.
             trailing_white_space = len(line) - len(line.rstrip())
             if trailing_white_space:
                 errors.append("{} trailing whitespace {} on line {}: "
-                              "' {} '".format(trailing_white_space,
-                                              "chars" if trailing_white_space > 1 else "char",
-                                              line_number,
-                                              line[0:100]))
+                              "'{}'".format(trailing_white_space,
+                                            "chars" if trailing_white_space > 1 else "char",
+                                            line_number,
+                                            line[0:100]))
 
             # Try to decode the byte string using UTF-8.
-            # If it can't be done, just work with the byte string.
-            # Issue error about a different file encoding.
+            # If it can't be done, just work with the byte string
+            # and issue error about a different file encoding.
             try:
-                line_unicode = line.decode('utf-8')
+                line_unicode = line_lb.decode('utf-8')
             except UnicodeDecodeError:
-                line_unicode = line
+                line_unicode = line_lb
                 errors.append("Could not decode line {} using UTF-8. "
                               "Please check the file encoding.".format(line_number))
 
@@ -195,14 +209,16 @@ class CharCheck(cog.task.Task):
                     # Generate an error message of the number of counts of bad characters.
                     # Only print up to the first 100 characters of the line.
                     error = ("{} {} of char {} on line {}: "
-                             "' {} '".format(count,
-                                             "copy" if count == 1 else "copies",
-                                             hex(ord(c)),
-                                             line_number,
-                                             line[0:100]))
+                             "'{}'".format(count,
+                                           "copy" if count == 1 else "copies",
+                                           hex(ord(c)),
+                                           line_number,
+                                           line[0:100]))
 
                     if ord(c) == 0x09:
-                        error += " => new TABs"
+                        error += " <b>=> new TABs</b>"
+                    elif ord(c) == 0x0d:
+                        error += " <b>=> carriage return (Windows-style line ending?)</b>"
 
                     errors.append(error)
 
