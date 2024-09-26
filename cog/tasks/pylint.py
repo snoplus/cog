@@ -15,12 +15,13 @@ class PyLint(cog.task.Task):
 
         # Messages/warnings/errors to enable and disable.
         self.messages_enable = ['all']
-        self.messages_disable = ['I0011', 'I0020', 'R0902',
+        self.messages_disable = ['I0011', 'I0020', 'R0902', 'W1514', 'R1732',
                                  'R0911', 'R0912', 'R0913', 'R0914', 'R0915',
-                                 'R1702', 'R0801', 'R1705', 'R0201', 'R0205',
+                                 'R1702', 'R0801', 'R1705', 'C0209', 'R0205',
                                  'C0103', 'C0301', 'C0302', 'C0413', 'C0114',
                                  'W0122', 'W0406', 'W0621', 'W0703', 'W0707',
-                                 'W0511', 'E0602']
+                                 'W0511', 'E0602', 'C1803', 'C1804', 'C1805',
+                                 'R1737', 'W0719', 'R1734', 'C0201', 'C0411']
 
         # List of files or directories to ignore.
         # Note the limitiation of basenames.
